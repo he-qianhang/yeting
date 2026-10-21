@@ -1,0 +1,6 @@
+# Optional: copy this file to .signing/release.properties inside android/.
+# Paths are relative to android/app/. Keep the keystore and real passwords local.
+storeFile=../.signing/release.jks
+storePassword=REPLACE_WITH_YOUR_OWN_PASSWORD
+keyAlias=release
+keyPassword=REPLACE_WITH_YOUR_OWN_PASSWORD

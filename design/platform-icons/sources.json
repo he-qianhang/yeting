@@ -1,0 +1,21 @@
+{
+  "project": "Simple Icons",
+  "license": "CC0-1.0; brand trademarks belong to their respective owners",
+  "icons": [
+    {
+      "name": "douyin",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/tiktok.svg",
+      "sha256": "6f54ac8d325faacea8935bdc44cbed60206a6b408641799e5fea1cba7c1a0af7"
+    },
+    {
+      "name": "bilibili",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/bilibili.svg",
+      "sha256": "0b31005ccf765a9d37be2c42f1d36e44572ccadb088250626d9905ae5d4f3d21"
+    },
+    {
+      "name": "youtube",
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/youtube.svg",
+      "sha256": "5038808acbbc4e6edda16cbeb1cc6dec80e4e4ee4e227e039c41229fa222aa8c"
+    }
+  ]
+}

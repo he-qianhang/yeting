@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "bgutils-js": "4.0.3",
+    "esbuild": "0.25.12"
+  },
+  "name": "yeting-youtube-proof",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs"
+  }
+}

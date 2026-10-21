@@ -1,0 +1,25 @@
+{
+  "library": "bgutils-js",
+  "version": "4.0.3",
+  "license": "MIT",
+  "upstream": "https://github.com/LuanRT/BgUtils",
+  "upstream_git_head": "f39a04173c6af1056c39a9a72c8f04bc86b5cfd2",
+  "registry_package": "https://registry.npmjs.org/bgutils-js/-/bgutils-js-4.0.3.tgz",
+  "registry_sha512": "nvhrzqRYqFcC3AJbf1fENc/jzyMk95wH9UC9ruQzTZCq+itYWuHi2a9leK/bC1lLfi+R4a28wJZxpD5KiTFf+w==",
+  "source_distribution_sha256": "4ae4a52040c5b3a77452ccf5fa7c2edeee36bbfc84e37943ad9b61d85293bb9b",
+  "bundled_javascript_sha256": "789d85e92b105b51994255a83412e01527fa8f171a6e5d963191ca415a64a83e",
+  "bundle_entry": "tools/youtube-proof/proof.js",
+  "bundler": "esbuild 0.25.12",
+  "protocol_references": [
+    "https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide",
+    "https://github.com/Brainicism/bgutil-ytdlp-pot-provider/blob/master/server/src/session_manager.ts"
+  ],
+  "runtime": "isolated Android WebView profile, network blocked, no native bridge",
+  "remote_hosts": [
+    "www.youtube.com",
+    "www.google.com"
+  ],
+  "third_party_conversion_service": false,
+  "account_required": false,
+  "proof_persistence": "memory only; recreated per work and after expiry/network change"
+}

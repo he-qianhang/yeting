@@ -1,0 +1,66 @@
+{
+  "sources": [
+    "https://repo.maven.apache.org/maven2/io/github/junkfood02/youtubedl-android/",
+    "https://github.com/yausername/youtubedl-android"
+  ],
+  "license": "GPL-3.0; include dependency license and source reference on distribution",
+  "runtime_updater_enabled": false,
+  "modules": [
+    {
+      "module": "library",
+      "version": "0.18.1",
+      "sha256": "579b5fb480892b1abc2b218c2089699d52759cc8d7ba256bf876453f0365faef",
+      "bytes": 59213110,
+      "arm64_binaries": [
+        {
+          "name": "jni/arm64-v8a/",
+          "bytes": 0
+        },
+        {
+          "name": "jni/arm64-v8a/libpython.so",
+          "bytes": 4384
+        },
+        {
+          "name": "jni/arm64-v8a/libpython.zip.so",
+          "bytes": 14305904
+        },
+        {
+          "name": "jni/arm64-v8a/libqjs.so",
+          "bytes": 916104
+        }
+      ],
+      "embedded_extractor_version": "'2025.11.12'"
+    },
+    {
+      "module": "ffmpeg",
+      "version": "0.18.1",
+      "sha256": "0a87ffa6cf912b0fe76c1a99b9107f543ee2f247935fae2c71f0822eb7bc5f49",
+      "bytes": 139371444,
+      "arm64_binaries": [
+        {
+          "name": "jni/arm64-v8a/",
+          "bytes": 0
+        },
+        {
+          "name": "jni/arm64-v8a/libffmpeg.so",
+          "bytes": 317120
+        },
+        {
+          "name": "jni/arm64-v8a/libffmpeg.zip.so",
+          "bytes": 35624931
+        },
+        {
+          "name": "jni/arm64-v8a/libffprobe.so",
+          "bytes": 233664
+        }
+      ]
+    },
+    {
+      "module": "common",
+      "version": "0.18.1",
+      "sha256": "e0c0530bdbdf203e1598e900085d3582e27360731872872f3a67f23a9b24c0b5",
+      "bytes": 5186,
+      "arm64_binaries": []
+    }
+  ]
+}

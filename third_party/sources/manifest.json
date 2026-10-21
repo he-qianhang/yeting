@@ -1,0 +1,20 @@
+[
+  {
+    "module": "library",
+    "url": "https://repo.maven.apache.org/maven2/io/github/junkfood02/youtubedl-android/library/0.18.1/library-0.18.1-sources.jar",
+    "sha256": "26e94f33de0ba802f3507862d509f80d100c1c9065ded7556d16ff51249c4a9a",
+    "bytes": 11451
+  },
+  {
+    "module": "ffmpeg",
+    "url": "https://repo.maven.apache.org/maven2/io/github/junkfood02/youtubedl-android/ffmpeg/0.18.1/ffmpeg-0.18.1-sources.jar",
+    "sha256": "fb95701c2697a501ebaf39c02112c58983dc3b855a4d957d825b7c6942b7afec",
+    "bytes": 1433
+  },
+  {
+    "module": "common",
+    "url": "https://repo.maven.apache.org/maven2/io/github/junkfood02/youtubedl-android/common/0.18.1/common-0.18.1-sources.jar",
+    "sha256": "7db17b16e5a66572aa40c8866941ae11f3f49128849beb2dc004dac84ca06a9b",
+    "bytes": 2098
+  }
+]

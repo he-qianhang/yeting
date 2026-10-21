@@ -1,0 +1,16 @@
+.gradle/
+.kotlin/
+**/build/
+android/local.properties
+android/.signing/
+*.jks
+*.keystore
+*.apk
+*.aab
+*.apks
+*.idsig
+tools/youtube-proof/node_modules/
+__pycache__/
+.DS_Store
+.idea/
+*.iml

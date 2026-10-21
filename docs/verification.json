@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-21",
+  "version": "0.2.9",
+  "unit_tests": {
+    "tests": 71,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 112,
+    "added_wrapper_update_advisory": 1
+  },
+  "device_tests": {
+    "emulator": "YeTingOpenSourceQA",
+    "api": 36,
+    "abi": "arm64-v8a",
+    "tests": 38,
+    "failures": 0,
+    "skipped": 0,
+    "elapsed_seconds": 190.583,
+    "fixture_seconds": 6.02,
+    "first_attempt_failures": 2,
+    "first_attempt_cause": "new exact-6s AAC timeline rounded to 5999ms; original 6000ms seek assertion unchanged"
+  },
+  "release_payload_comparison": {
+    "files": 472,
+    "identical": true,
+    "complete_apk_bytes_identical": false
+  },
+  "unchanged_main_and_unit_files": 51,
+  "apk_distributed": false,
+  "physical_device_tested": false
+}

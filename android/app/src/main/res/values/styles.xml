@@ -1,0 +1,19 @@
+<resources>
+    <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#A95D35</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowBackground">#F7F6F2</item>
+    </style>
+    <style name="NightDialog" parent="android:style/Theme.Material.Dialog.Alert">
+        <item name="android:colorAccent">#F2C29E</item>
+        <item name="android:colorBackground">#222522</item>
+        <item name="android:windowBackground">@drawable/bg_dialog</item>
+    </style>
+    <style name="DayDialog" parent="android:style/Theme.Material.Light.Dialog.Alert">
+        <item name="android:colorAccent">#A95D35</item>
+        <item name="android:colorBackground">#FFFFFF</item>
+        <item name="android:windowBackground">@drawable/bg_dialog</item>
+    </style>
+</resources>
