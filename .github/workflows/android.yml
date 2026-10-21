@@ -19,8 +19,11 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          packages: "platform-tools platforms;android-36 build-tools;35.0.0"
+          log-accepted-android-sdk-licenses: false
       - name: Unit tests, lint and builds
         working-directory: android
         run: ./gradlew --no-daemon -Pkotlin.compiler.execution.strategy=in-process :app:testReleaseUnitTest :app:lintRelease :app:assembleDebug :app:assembleRelease :app:assembleDebugAndroidTest

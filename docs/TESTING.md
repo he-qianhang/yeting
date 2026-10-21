@@ -21,6 +21,8 @@
 
 上述本地结果不代表全部厂商或Android版本兼容。GitHub Actions负责在公开仓库的干净Linux运行器中重新执行构建、单元测试和Lint，其状态可在仓库Actions页核对。
 
+已从GitHub匿名重新克隆源码，在没有签名配置或local.properties的新目录中通过全部构建任务和71项单元测试。首轮GitHub CI在编译前因运行器缺少sdkmanager失败，随后补充显式Android SDK安装；原失败运行保留，不计为通过。
+
 ## 公开设备测试范围
 
 保留 PlaybackRevision、QueuePlayerRevision、MotionInteraction、SourceReliability、TouchFeedback、SleepRecoveryDevice 六个测试类，明确选择38个方法，列表在 [device-tests.txt](../tools/device-tests.txt)。测试使用新生成的合成音频；来源容错使用模拟器本地回环服务，不访问真实来源平台。
