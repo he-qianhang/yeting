@@ -1,8 +1,18 @@
 # 验证记录
 
-本页区分2026-10-21公开整理的实际验证与此前内部0.2.9的历史记录。
+本页按版本区分公开构建验证与内部历史验收，不将旧方法或旧长测当作新版公开候选的新结果。
 
-## 本次公开整理
+## 0.3.2公开源码同步（2026-10-26）
+
+- 在保留的公开源码目录，未配置个人release签名或内部local.properties，通过固定Gradle Wrapper完成release单元、Lint、debug/未签名release/设备测试APK构建。
+- 87项单元测试，0失败/错误/跳过；Lint0错误、115警告。原内部0.3.2为114警告，公开Wrapper多1项版本更新提示，未借同步升级依赖或隐藏警告。
+- 61份main/资源/单元文件与0.3.2发布基线逐项一致，见source-baseline.json。实际构建的未签名release与内部已验证APK的472个非META-INF负载名称、数量及SHA-256全部相同；不是完整APK或签名相同。
+- 六项原生负载与原native-inventory.json哈希仍相同，第三方版本与许可资料未改写。
+- 本次未重跑38项公开设备选择器、60分钟长测、旧升级或真实来源采集；只编译了公开设备测试包。未导出新的私人讲话素材或内部设备套件，不把内部65个去重方法算作本次公开新测试。
+- 内部0.3.2既有验收为87单元、65个去重设备方法、一小时离线熄屏、源码独立重建472个负载一致；这些是原版本来源记录，不是本次另跑。实际手机听感/电耗/后台仍待验证。
+- GitHub Actions会对本次推送重新执行干净Linux构建、单元与Lint；具体执行结果以Actions对应提交为准。
+
+## 0.2.9首次公开整理（2026-10-21）
 
 在独立源码目录构建，没有配置私人 release 签名，也没有使用原项目的本机 `local.properties`。Gradle Wrapper8.14.3 使用官方分发 SHA-256；工具链与应用依赖保持原版本。
 
@@ -23,7 +33,7 @@
 
 已从GitHub匿名重新克隆源码，在没有签名配置或local.properties的新目录中通过全部构建任务和71项单元测试。首轮GitHub CI在编译前因运行器缺少sdkmanager失败，随后补充显式Android SDK安装；原失败运行保留，不计为通过。
 
-## 公开设备测试范围
+## 保留的公开设备测试范围（最初在0.2.9验证）
 
 保留 PlaybackRevision、QueuePlayerRevision、MotionInteraction、SourceReliability、TouchFeedback、SleepRecoveryDevice 六个测试类，明确选择38个方法，列表在 [device-tests.txt](../tools/device-tests.txt)。测试使用新生成的合成音频；来源容错使用模拟器本地回环服务，不访问真实来源平台。
 

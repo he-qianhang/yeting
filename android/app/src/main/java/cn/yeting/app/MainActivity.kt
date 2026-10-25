@@ -537,6 +537,7 @@ class MainActivity:Activity() {
         space(content,14);modeDetail=text("",12f,true).apply{gravity=Gravity.CENTER};content.addView(modeDetail)
     }
     private fun updatePlayback() {
+        (dialog as? ListeningSheet)?.currentPage?.findViewWithTag<TextView>("steady-state")?.text=service?.steadyStatus ?: "等待播放器连接"
         speedRefresh?.invoke()
         service?.recoveryNotice?.takeIf{it.isNotEmpty() && it!=shownRecoveryNotice}?.let{shownRecoveryNotice=it;toast(it)}
         val s=service;val e=entry() ?: return
@@ -545,7 +546,8 @@ class MainActivity:Activity() {
         if(playerTitle?.text?.toString()!=e.title)playerTitle?.apply{text=e.title;contentDescription=e.title}
         val author=e.author.ifEmpty{e.platform};if(playerAuthor?.text?.toString()!=author)playerAuthor?.text=author
         if(playerArt?.symbol!=e.platform)playerArt?.apply{symbol=e.platform;invalidate()}
-        playerPlatform?.let{if(it.text.toString()!="${e.platform} · 原声")it.text="${e.platform} · 原声"}
+        val sound=if(NightApp.steady.enabled)"平稳音量"else "原声"
+        playerPlatform?.let{if(it.text.toString()!="${e.platform} · $sound")it.text="${e.platform} · $sound"}
         playerSource?.let{val label="打开${e.platform}原视频 ↗";if(it.text.toString()!=label)it.text=label;it.contentDescription="打开${e.platform}原视频"}
         val position=if(s?.currentId==e.id)s.player.currentPosition else e.positionMs
         val playing=s?.player?.isPlaying==true
@@ -782,13 +784,13 @@ class MainActivity:Activity() {
             box.addView(button("确定",true){submit(picker.value);d.dismiss()})
         }
     }
-    private fun modeLabel()=when(service?.mode ?: store.prefs.getString("playMode","queue")){"repeat"->"单首循环";"shuffle"->"随机播放";else->"顺序连播"}
+    private fun modeLabel()=when(service?.mode ?: store.prefs.getString("playMode","queue")){"repeat"->"单首循环";"shuffle"->"随机播放";else->"列表循环"}
     private fun queueSheet(firstPosition:Int=0,topOffset:Int=0):Unit=sheet("待听列表"){box,d->
         var shuffled=service?.mode=="shuffle"
         val modes=row()
         val modeButtons=mutableMapOf<String,TextView>()
         fun updateModes(){modeButtons.forEach{(key,view)->val chosen=(service?.mode ?: store.prefs.getString("playMode","queue"))==key;view.ripple(if(chosen)colors.accent else colors.bg);view.setTextColor(if(chosen)colors.onAccent else colors.text)}}
-        listOf("queue" to "顺序连播","repeat" to "单首循环","shuffle" to "随机播放").forEach{(key,label)->
+        listOf("queue" to "列表循环","repeat" to "单首循环","shuffle" to "随机播放").forEach{(key,label)->
             val button=button(label){shuffled=key=="shuffle";service?.playbackMode(key);updateModes()}.apply{textSize=13f;pad(this,4,10,4,10)}
             modeButtons[key]=button;modes.addView(button,LinearLayout.LayoutParams(0,dp(48),1f).apply{marginEnd=dp(4)})
         };updateModes()
@@ -861,7 +863,12 @@ class MainActivity:Activity() {
         val clipboard=Switch(this).apply{text="自动识别剪贴板";textSize=15f;setTextColor(colors.text);minHeight=dp(58);isChecked=store.prefs.getBoolean("autoClipboard",true);buttonTint(this);setOnCheckedChangeListener{_,checked->store.prefs.edit().putBoolean("autoClipboard",checked).apply()}};switches.addView(clipboard)
         val mobile=Switch(this).apply{text="允许用流量准备";textSize=15f;setTextColor(colors.text);minHeight=dp(58);isChecked=store.prefs.getBoolean("mobilePreparation",false);buttonTint(this);setOnCheckedChangeListener{_,checked->store.prefs.edit().putBoolean("mobilePreparation",checked).apply()}};switches.addView(mobile)
         val haptics=Switch(this).apply{text="触感反馈";textSize=15f;setTextColor(colors.text);minHeight=dp(58);isChecked=store.prefs.getBoolean("haptics",true);buttonTint(this);setOnCheckedChangeListener{_,checked->store.prefs.edit().putBoolean("haptics",checked).apply()}};switches.addView(haptics)
-        box.addView(switches);space(box,20);box.addView(text("外观",13f,true));space(box,10)
+        box.addView(switches);space(box,20)
+        val steady=Switch(this).apply{text="平稳音量";textSize=15f;setTextColor(colors.text);minHeight=dp(58);tag="steady-volume";isChecked=NightApp.steady.enabled;buttonTint(this)
+            setOnCheckedChangeListener{_,checked->service?.steadyVolume(checked)}}
+        box.addView(steady);box.addView(text("让声音更均匀，压住突然的大声。可以先听，处理完成后会慢慢切换。",12f,true))
+        box.addView(text(service?.steadyStatus ?: "等待播放器连接",12f,true).apply{tag="steady-state"})
+        space(box,20);box.addView(text("外观",13f,true));space(box,10)
         val themeRow=row()
         listOf("system" to "跟随系统","light" to "浅色","dark" to "深色").forEach{(key,label)->
             themeRow.addView(button(label,store.prefs.getString("theme","system")==key){store.prefs.edit().putString("theme",key).apply();changeAppearance();updateThemeButtons(themeRow)}.apply{tag="theme-$key";textSize=12f;setPadding(0,0,0,0)},LinearLayout.LayoutParams(0,dp(46),1f).apply{marginEnd=dp(4)})

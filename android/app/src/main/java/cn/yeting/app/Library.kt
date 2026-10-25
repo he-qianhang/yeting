@@ -12,8 +12,8 @@ import java.net.URI
 import java.util.UUID
 
 class NightApp : Application() {
-    override fun onCreate() { super.onCreate(); store = Library(this) }
-    companion object { lateinit var store: Library; private set }
+    override fun onCreate() { super.onCreate(); store = Library(this);steady=SteadyAudio(this) }
+    companion object { lateinit var store: Library; private set;@get:JvmName("getSteady") internal lateinit var steady:SteadyAudio;private set }
 }
 
 enum class Readiness { WAITING, WORKING, READY, ERROR, LINK_ONLY }

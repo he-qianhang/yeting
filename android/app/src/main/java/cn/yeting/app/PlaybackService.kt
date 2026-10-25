@@ -7,9 +7,11 @@ import android.os.Looper
 import android.os.SystemClock
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
@@ -21,7 +23,7 @@ class PlaybackService : MediaSessionService() {
     private var session:MediaSession?=null
     private val handler=Handler(Looper.getMainLooper())
     private val store get()=NightApp.store
-    var currentId:String?=null; private set
+    @Volatile var currentId:String?=null; private set
     lateinit var policy:ListeningPolicy; private set
     var lastError=""; private set
     private var lastSaved=0L
@@ -32,6 +34,7 @@ class PlaybackService : MediaSessionService() {
     private lateinit var recovery:SleepRecovery
     private lateinit var diagnostics:PlaybackDiagnostics
     private var lastForeground=false
+    @get:JvmName("getSteadyPlayback") internal lateinit var steadyPlayback:SteadyPlayback;private set
     var recoveryNotice=""; private set
     val speedForCurrent get()=speedEntryId!=null && speedEntryId==currentId
     val mode get()=store.prefs.getString("playMode","queue") ?: "queue"
@@ -52,14 +55,28 @@ class PlaybackService : MediaSessionService() {
         diagnostics=PlaybackDiagnostics(this);recovery=SleepRecovery(this)
         val restored=recovery.load();policy=restored.policy;recoveryNotice=restored.notice
         store.prefs.edit().putString("sleep",policy.sleep).apply()
-        player=ExoPlayer.Builder(this).setSeekBackIncrementMs(15_000).setSeekForwardIncrementMs(15_000).build()
+        steadyPlayback=SteadyPlayback().apply{enabled=NightApp.steady.enabled}
+        steadyPlayback.selected={handler.post{record("steady_signal");notifyUi()}}
+        player=ExoPlayer.Builder(this,steadyPlayback.renderers(this)).setMediaSourceFactory(steadyPlayback.sourceFactory(this))
+            .setSeekBackIncrementMs(15_000).setSeekForwardIncrementMs(15_000).build()
+        player.trackSelectionParameters=player.trackSelectionParameters.buildUpon().setAudioOffloadPreferences(
+            AudioOffloadPreferences.Builder().setAudioOffloadMode(AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED).build()).build()
+        NightApp.steady.changed={id->
+            steadyPlayback.publish(id)
+            record("steady_analysis_changed");notifyUi()
+        }
         player.setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_SPEECH).build(),true)
         player.setHandleAudioBecomingNoisy(true)
         player.setWakeMode(C.WAKE_MODE_LOCAL)
         val speed=PlaybackSpeed.normalize(store.prefs.getFloat("speed",1f))
         store.prefs.edit().putFloat("speed",speed).apply();player.setPlaybackSpeed(speed)
         val intent=PendingIntent.getActivity(this,0,Intent(this,MainActivity::class.java),PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        session=MediaSession.Builder(this,player).setSessionActivity(intent).build().also{addSession(it)}
+        val controls=object:ForwardingPlayer(player){
+            override fun seekToNextMediaItem()=this@PlaybackService.next()
+            override fun seekToNext()=this@PlaybackService.next()
+            override fun pause()=this@PlaybackService.pause()
+        }
+        session=MediaSession.Builder(this,controls).setSessionActivity(intent).build().also{addSession(it)}
         record("service_created")
         player.addListener(object:Player.Listener {
             override fun onIsPlayingChanged(isPlaying:Boolean) {save();record("playing");notifyUi()}
@@ -94,13 +111,16 @@ class PlaybackService : MediaSessionService() {
                 if(state==Player.STATE_ENDED && !replacingItems) {
                     val id=currentId
                     if(id!=null) store.update(id) {it.positionMs=it.durationMs;it.completed=true}
-                    policy.completed(SystemClock.elapsedRealtime())
+                    val advance=policy.completed(SystemClock.elapsedRealtime())
+                    val next=if(advance)nextReady(id)else null
+                    if(next!=null){play(next.id,restart=true);return}
+                    player.pause();save()
                     policy.choose("off",SystemClock.elapsedRealtime());persistPolicy()
                 }
                 notifyUi()
             }
             override fun onPlayerError(error:androidx.media3.common.PlaybackException) {
-                lastError="音频暂时无法播放，可清理后重新准备";save();record("error_${error.errorCode}");notifyUi()
+                lastError=if(NightApp.steady.enabled)"音频暂时无法播放，可重新准备后重试"else "音频暂时无法播放，可清理后重新准备";save();record("error_${error.errorCode}");notifyUi()
             }
         })
         restored.entryId?.let{store.get(it)}?.takeIf{it.state==Readiness.READY && store.audioFile(it).isFile}?.let{entry->
@@ -120,22 +140,34 @@ class PlaybackService : MediaSessionService() {
         if(currentId==id && player.playbackState!=Player.STATE_ENDED && !restart) {resumeCurrent();return}
         player.pause();save();replacingItems=true;player.stop();restoreSpeedFor(id);currentId=id;lastError=""
         if(remember && history.getOrNull(historyCursor)!=id){while(history.size>historyCursor+1)history.removeAt(history.lastIndex);history.add(id);historyCursor=history.lastIndex}
+        steadyPlayback.beginPlayback()
         player.setMediaItem(mediaItem(entry))
         replacingItems=false
         syncUpcoming()
         player.seekTo(if(restart || entry.completed || entry.positionMs>=entry.durationMs-500) 0 else entry.positionMs)
-        player.prepare();player.play()
+        resumeCurrent()
         recoveryNotice="";persistPolicy();store.prefs.edit().putString("last",id).apply();record("play_requested");notifyUi()
     }
     fun pause() {player.pause();save();notifyUi()}
-    fun toggle() {recoveryNotice="";if(player.isPlaying)pause() else if(currentId!=null)resumeCurrent() else store.prefs.getString("last",null)?.let {play(it)}}
+    fun toggle() {recoveryNotice="";if(player.playWhenReady)pause() else if(currentId!=null)resumeCurrent() else store.prefs.getString("last",null)?.let {play(it)}}
     private fun resumeCurrent(){
         val entry=store.get(currentId)
+        if(entry!=null && NightApp.steady.enabled && !NightApp.steady.failed(entry.id) && NightApp.steady.needsAnalysis(entry.id))requestAnalysis(entry.id)
+        lastError=""
         if(player.playbackState==Player.STATE_ENDED || (player.playbackState==Player.STATE_IDLE && entry?.completed==true)){
             player.seekTo(0);entry?.let{store.update(it.id,notify=false){saved->saved.positionMs=0;saved.completed=false}};syncUpcoming()
         }
         if(player.playbackState==Player.STATE_IDLE)player.prepare()
         player.play()
+    }
+    private fun requestAnalysis(id:String?):Boolean=runCatching{SteadyAudioService.start(this,id);true}.getOrDefault(false)
+    fun steadyVolume(enabled:Boolean){
+        if(enabled==NightApp.steady.enabled)return
+        store.prefs.edit().putBoolean("steadyVolume",enabled).apply()
+        steadyPlayback.enabled=enabled
+        if(enabled){NightApp.steady.allowRetry();currentId?.let{steadyPlayback.publish(it)};requestAnalysis(currentId)}
+        else stopService(Intent(this,SteadyAudioService::class.java))
+        record("steady_volume_changed");notifyUi()
     }
     fun seek(position:Long) {if(currentId!=null){player.seekTo(position.coerceIn(0,player.duration.takeIf{it>0} ?: store.get(currentId)?.durationMs?.takeIf{it>0} ?: Long.MAX_VALUE));save(userSeek=true);notifyUi()}}
     private fun restoreSpeedFor(id:String?) {
@@ -157,20 +189,41 @@ class PlaybackService : MediaSessionService() {
     }
     fun queueChanged(){while(history.size>historyCursor+1)history.removeAt(history.lastIndex);syncUpcoming();notifyUi()}
     private fun persistPolicy() {store.prefs.edit().putBoolean("continuous",policy.continuous).putString("sleep",policy.sleep).apply();recovery.save(policy,currentId)}
-    private fun record(event:String){diagnostics.event(event,"registered=${sessions.isNotEmpty()} foreground=$isPlaybackOngoing playing=${player.isPlaying} position=${player.currentPosition} sleep=${policy.sleep} deadline=${policy.deadlineMs} tracks=${policy.remainingTracks}")}
+    private fun record(event:String){diagnostics.event(event,"registered=${sessions.isNotEmpty()} foreground=$isPlaybackOngoing playing=${player.isPlaying} position=${player.currentPosition} sleep=${policy.sleep} deadline=${policy.deadlineMs} tracks=${policy.remainingTracks}"+
+        " dsp=${SteadyTuning.VERSION} steady=${NightApp.steady.enabled} signal_entry=${steadyPlayback.inputEntry} signal_active=${steadyPlayback.profile!=null} mix=${steadyPlayback.mix} limited=${steadyPlayback.profile?.limited==true}")}
+    val steadyStatus:String get(){
+        val same=steadyPlayback.inputEntry==currentId
+        val amount=if(same)steadyPlayback.mix else 0.0
+        if(!NightApp.steady.enabled)return if(amount>0)"正在慢慢恢复原声"else "已关闭，播放原声"
+        val id=currentId ?: return "已开启，可先选音频播放"
+        val profile=NightApp.steady.profile(id)
+        if(profile==null){
+            if(NightApp.steady.failed(id))return "处理失败，继续播放原声"
+            return if(NightApp.steady.workingId==id)"正在处理，先播放原声"else "等待处理，先播放原声"
+        }
+        val active=same && steadyPlayback.profile!=null
+        val state=when{
+            active && amount>=1->"平稳音量已启用"
+            active && amount>0->"正在慢慢切换，声音会逐渐平稳"
+            else->"已就绪，继续播放时启用"
+        }
+        return state+(if(profile.limited)"；已达提升上限，仍可能偏小"else "")
+    }
     fun playbackReport()=diagnostics.report()
     private fun mediaItem(entry:Entry)=MediaItem.Builder().setMediaId(entry.id).setUri(android.net.Uri.fromFile(store.audioFile(entry)))
         .setMediaMetadata(MediaMetadata.Builder().setTitle(entry.title).setArtist(entry.author.ifEmpty {entry.platform}).setMediaType(MediaMetadata.MEDIA_TYPE_PODCAST).build()).build()
-    private fun nextReady(id:String?):Entry? {
+    internal fun nextReady(id:String?,repeatCurrent:Boolean=true):Entry? {
         if(id==null)return null
-        if(mode=="repeat")return store.get(id)?.takeIf{it.state==Readiness.READY && store.audioFile(it).isFile}
+        if(repeatCurrent && mode=="repeat")return store.get(id)?.takeIf{it.state==Readiness.READY && store.audioFile(it).isFile}
         val all=store.queue(mode=="shuffle");val index=all.indexOfFirst{it.id==id}
-        return if(index>=0)all.drop(index+1).firstOrNull{it.state==Readiness.READY && store.audioFile(it).isFile}else null
+        val next=QueueOrder.next(all.size,index){all[it].state==Readiness.READY && store.audioFile(all[it]).isFile}
+        return next?.let{all[it]}
     }
     private fun syncUpcoming() {
         if(replacingItems || currentId==null || player.mediaItemCount==0)return
         val now=SystemClock.elapsedRealtime()
         val wanted=if(policy.shouldAdvance(now) && (policy.sleep!="count" || policy.remainingTracks>1))nextReady(currentId)else null
+        if(wanted!=null && NightApp.steady.enabled && !NightApp.steady.failed(wanted.id) && NightApp.steady.needsAnalysis(wanted.id))requestAnalysis(wanted.id)
         replacingItems=true
         try {
             val index=player.currentMediaItemIndex
@@ -183,9 +236,10 @@ class PlaybackService : MediaSessionService() {
     fun next() {
         if(stopAfterTailSkip())return
         while(historyCursor+1<history.size){historyCursor++;val id=history[historyCursor];val e=store.get(id);if(e?.state==Readiness.READY && store.audioFile(e).isFile){play(id,remember=false);return}}
-        val all=store.queue(mode=="shuffle");val index=all.indexOfFirst {it.id==currentId}
-        val next=if(index>=0) all.drop(index+1).firstOrNull {it.state==Readiness.READY && store.audioFile(it).isFile} else null
-        if(next!=null) play(next.id) else {player.pause();save()}
+        val next=nextReady(currentId,repeatCurrent=false)
+        val all=store.queue(mode=="shuffle")
+        val wrapped=next!=null && all.indexOfFirst{it.id==next.id}<=all.indexOfFirst{it.id==currentId}
+        if(next!=null) play(next.id,restart=wrapped) else {player.pause();save()}
     }
     fun previous() {
         if(stopAfterTailSkip())return
@@ -218,7 +272,7 @@ class PlaybackService : MediaSessionService() {
         return super.onStartCommand(intent,flags,startId)
     }
     override fun onTaskRemoved(rootIntent:Intent?) {save();persistPolicy();record("task_removed");super.onTaskRemoved(rootIntent)}
-    override fun onDestroy() {handler.removeCallbacks(tick);save();persistPolicy();record("service_destroyed");active=null;session?.let{removeSession(it);it.release()};player.release();notifyUi();super.onDestroy()}
+    override fun onDestroy() {NightApp.steady.changed=null;steadyPlayback.selected=null;handler.removeCallbacks(tick);save();persistPolicy();record("service_destroyed");active=null;session?.let{removeSession(it);it.release()};player.release();notifyUi();super.onDestroy()}
     companion object {
         var active:PlaybackService?=null;private set
         var changed:(()->Unit)?=null

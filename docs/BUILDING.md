@@ -2,7 +2,7 @@
 
 ## 工具链
 
-保持 0.2.9 原工具链：JDK21、Gradle8.14.3、AGP8.13.0、Kotlin2.2.20、compileSdk36、targetSdk35、minSdk26、arm64-v8a。Gradle Wrapper 已固定版本及官方分发 SHA-256，不需要全局 Gradle。
+保持已固定的工具链：JDK21、Gradle8.14.3、AGP8.13.0、Kotlin2.2.20、compileSdk36、targetSdk35、minSdk26、arm64-v8a。Gradle Wrapper 已固定版本及官方分发 SHA-256，不需要全局 Gradle。
 
 安装 Android SDK 平台和构建工具：
 
@@ -35,6 +35,8 @@ debug 输出位于 `android/app/build/outputs/apk/debug/`，可安装到自己�
 目前不发布预编译 APK；自行构建不等于已经完成再次分发的全部许可准备，见 [BINARY_RELEASE.md](BINARY_RELEASE.md)。
 
 ## 设备验收
+
+以下38个公开设备选择器最初在0.2.9整理时验证；本次0.3.2同步仅编译该设备测试包，没有重跑这些方法，也未将内部65项设备检查导入公开套件。它们不覆盖新增平稳音量的完整验收。
 
 只在全新的专用模拟器 `YeTingOpenSourceQA` 上运行公开设备测试。推荐 API36 / arm64 / 1080×2400 / 440dpi，保留系统动画默认值。测试会建立和删除合成条目、操作播放器和系统界面，不能用于日常手机或有收藏数据的模拟器。
 

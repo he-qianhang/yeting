@@ -73,6 +73,7 @@ class PreparationService:Service() {
             val target=File(store.audioDir,id+"."+audio.extension)
             check(audio.renameTo(target)){"手机空间不足，请清理后重试"}
             store.update(id){it.audio=target.name;it.durationMs=duration;it.state=Readiness.READY;it.message="已经可以听了";it.jobId=""}
+                    if(NightApp.steady.enabled){NightApp.steady.allowRetry(id);runCatching{SteadyAudioService.start(applicationContext,id)}}
             if(entry.platform=="YouTube")runCatching{SourceDiagnostics(applicationContext).succeeded(id,entry.platform,phase,"audio_ready",source.attempts)}
         }catch(e:Exception){
             runCatching{SourceDiagnostics(applicationContext).failed(id,entry.platform,phase,e,source.attempts)}
